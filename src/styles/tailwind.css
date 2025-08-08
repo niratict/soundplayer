@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pixel border & LCD feel */
+@layer components {
+  .pixel-border { @apply border-4 border-gameboy-dark rounded-pixel; }
+  .lcd { @apply shadow-lcd bg-gameboy-bg text-gameboy-text; }
+  .btn { @apply pixel-border px-3 py-2 font-semibold active:translate-y-[1px]; }
+  .card { @apply pixel-border p-3 md:p-4; }
+  .input { @apply pixel-border px-3 py-2 w-full bg-transparent outline-none; }
+}
+
+/* Focus ring that fits palette */
+:root { --gb-ring: #2f6b3a; }
+* :focus { outline: 2px dashed var(--gb-ring); outline-offset: 2px; }
