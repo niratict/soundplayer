@@ -1,121 +1,257 @@
-import type { Track } from '../types'
-import { usePlayerStore } from '../features/player/playerStore'
+import { Play, Music } from "lucide-react";
+import { Track } from "../types";
+import { usePlayerStore } from "../features/player/playerStore";
+import { truncateText } from "../utils/format";
 
-type Props = { tracks: Track[] }
+interface TrackListProps {
+  tracks: Track[];
+  isLoading: boolean;
+  error: string | null;
+}
 
-export default function TrackList({ tracks }: Props) {
-  const setQueue = usePlayerStore((s) => s.setQueue)
-  const { current } = usePlayerStore()
+const TrackList = ({ tracks, isLoading, error }: TrackListProps) => {
+  const { setQueue, playAt, queue, currentIndex, isPlaying } = usePlayerStore();
 
-  const onClickRow = (idx: number) => {
-    setQueue(tracks, idx)
+  const handleTrackClick = (track: Track, index: number) => {
+    // Find the clicked track's position in the current list
+    const trackIndex = tracks.findIndex((t) => t.trackId === track.trackId);
+    if (trackIndex === -1) return;
+
+    // Set queue starting from the clicked track
+    const newQueue = tracks.slice(trackIndex);
+    setQueue(newQueue, 0);
+    playAt(0);
+  };
+
+  const isCurrentTrack = (track: Track) => {
+    return queue[currentIndex]?.trackId === track.trackId;
+  };
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 backdrop-blur-sm">
+          <span className="text-red-500">⚠️</span> {error}
+        </div>
+      </div>
+    );
   }
 
-  if (tracks.length === 0) return null
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-slate-700/50 rounded-xl p-4 h-20 backdrop-blur-sm border border-slate-600/30"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (tracks.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="bg-slate-800/50 rounded-2xl p-8 backdrop-blur-sm border border-slate-700/50">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+            <Music className="w-10 h-10 text-slate-400" />
+          </div>
+          <p className="text-slate-400 text-lg">
+            Search for your favorite songs above
+          </p>
+          <p className="text-slate-500 text-sm mt-2">
+            Discover millions of tracks from iTunes
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l6-6v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-          </svg>
-        </div>
-        <div>
-          <h3 className="text-white font-semibold text-lg">ผลการค้นหา</h3>
-          <p className="text-slate-400 text-sm">{tracks.length} เพลง</p>
-        </div>
-      </div>
+    <div id="track-list" className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6"></div>
 
-      <div className="space-y-3">
-        {tracks.map((t, i) => {
-          const isCurrentlyPlaying = current?.trackId === t.trackId
-          
-          return (
-            <button
-              key={t.trackId}
-              data-testid={`track-row-${t.trackId}`}
-              className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-300 group ${
-                isCurrentlyPlaying 
-                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30' 
-                  : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600'
-              } hover:scale-[1.01] hover:shadow-lg`}
-              onClick={() => onClickRow(i)}
-              title="เล่นเพลงนี้และตั้งคิว"
-            >
-              {/* Album Art */}
-              <div className="relative">
-                <img 
-                  src={t.artworkUrl100} 
-                  alt={t.trackName} 
-                  className="w-16 h-16 object-cover rounded-lg shadow-md" 
-                />
-                <div className={`absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                  isCurrentlyPlaying ? 'opacity-100' : ''
-                }`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    isCurrentlyPlaying 
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500' 
-                      : 'bg-white/20 backdrop-blur-sm'
-                  }`}>
-                    {isCurrentlyPlaying ? (
-                      <div className="flex gap-1">
-                        <div className="w-1 h-4 bg-white rounded-full animate-pulse"></div>
-                        <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+      {/* Track List with Custom Scrollbar */}
+      <div
+        className="max-h-[500px] overflow-y-auto pr-1"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "#6366f1 transparent",
+        }}
+      >
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            width: 8px;
+          }
+
+          div::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 4px;
+            margin: 4px 0;
+          }
+
+          div::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            border-radius: 4px;
+            border: 1px solid rgba(30, 41, 59, 0.5);
+            transition: all 0.3s ease;
+          }
+
+          div::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+          }
+
+          div::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(135deg, #6d28d9, #be185d);
+          }
+
+          div::-webkit-scrollbar-corner {
+            background: transparent;
+          }
+        `}</style>
+
+        <div className="space-y-2">
+          {tracks.map((track, index) => {
+            const isCurrent = isCurrentTrack(track);
+
+            return (
+              <div
+                key={track.trackId}
+                data-testid={`track-row-${track.trackId}`}
+                onClick={() => handleTrackClick(track, index)}
+                className={`group cursor-pointer p-4 rounded-xl border transition-all duration-300 
+                           hover:scale-[1.01] hover:shadow-xl backdrop-blur-sm
+                           ${
+                             isCurrent
+                               ? "bg-gradient-to-r from-purple-500/20 via-pink-500/10 to-purple-500/20 border-purple-500/50 shadow-lg shadow-purple-500/20"
+                               : "bg-slate-800/80 border-slate-700 hover:bg-slate-700/80 hover:border-slate-600"
+                           }`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Play ${track.trackName} by ${track.artistName}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleTrackClick(track, index);
+                  }
+                }}
+              >
+                <div className="flex items-center space-x-4">
+                  {/* Track Number */}
+                  <div className="w-6 text-center flex-shrink-0">
+                    <span className="text-sm text-slate-500 group-hover:hidden">
+                      {index + 1}
+                    </span>
+                    <Play className="w-4 h-4 text-slate-400 hidden group-hover:block mx-auto" />
+                  </div>
+
+                  {/* Artwork */}
+                  <div className="relative w-14 h-14 flex-shrink-0">
+                    <img
+                      src={track.artworkUrl100}
+                      alt={`${track.trackName} artwork`}
+                      className="w-full h-full rounded-lg border border-slate-600 object-cover shadow-lg"
+                      loading="lazy"
+                    />
+
+                    {/* Play overlay */}
+                    <div
+                      className={`absolute inset-0 flex items-center justify-center rounded-lg
+                                    ${
+                                      isCurrent && isPlaying
+                                        ? "bg-gradient-to-br from-purple-500/90 to-pink-500/90"
+                                        : "bg-black/0 group-hover:bg-black/60"
+                                    } transition-all duration-300`}
+                    >
+                      <Play
+                        className={`w-6 h-6 text-white drop-shadow-lg
+                                      ${
+                                        isCurrent && isPlaying
+                                          ? "opacity-100 scale-110"
+                                          : "opacity-0 group-hover:opacity-100 group-hover:scale-110"
+                                      } transition-all duration-300`}
+                      />
+                    </div>
+
+                    {/* Playing indicator */}
+                    {isCurrent && isPlaying && (
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       </div>
-                    ) : (
-                      <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
                     )}
                   </div>
-                </div>
-              </div>
 
-              {/* Track Info */}
-              <div className="flex-1 min-w-0 text-left">
-                <div className={`font-semibold leading-tight truncate ${
-                  isCurrentlyPlaying ? 'text-purple-300' : 'text-white group-hover:text-purple-300'
-                } transition-colors duration-300`}>
-                  {t.trackName}
-                </div>
-                <div className="text-slate-400 text-sm truncate mt-1 group-hover:text-slate-300 transition-colors duration-300">
-                  {t.artistName}
-                </div>
-              </div>
-
-              {/* Track Number */}
-              <div className={`text-xs font-mono px-2 py-1 rounded ${
-                isCurrentlyPlaying 
-                  ? 'bg-purple-400/20 text-purple-300' 
-                  : 'bg-slate-700 text-slate-400 group-hover:bg-slate-600'
-              } transition-colors duration-300`}>
-                {String(i + 1).padStart(2, '0')}
-              </div>
-
-              {/* Play indicator */}
-              <div className={`transition-all duration-300 ${
-                isCurrentlyPlaying ? 'scale-110' : 'group-hover:scale-110'
-              }`}>
-                {isCurrentlyPlaying ? (
-                  <div className="text-purple-400">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM9.5 16.5v-9l7 4.5-7 4.5z"/>
-                    </svg>
+                  {/* Track info */}
+                  <div className="flex-1 min-w-0">
+                    <h3
+                      className={`text-base font-medium truncate transition-colors duration-200
+                                   ${
+                                     isCurrent
+                                       ? "text-transparent bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text"
+                                       : "text-white group-hover:text-slate-200"
+                                   }`}
+                    >
+                      {truncateText(track.trackName, 45)}
+                    </h3>
+                    <p
+                      className={`text-sm truncate mt-1 transition-colors duration-200
+                                 ${
+                                   isCurrent
+                                     ? "text-purple-300"
+                                     : "text-slate-400 group-hover:text-slate-300"
+                                 }`}
+                    >
+                      {truncateText(track.artistName, 40)}
+                    </p>
+                    {track.collectionName && (
+                      <p className="text-xs text-slate-500 truncate mt-1">
+                        {truncateText(track.collectionName, 40)}
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-slate-400 group-hover:text-purple-400 transition-colors duration-300">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a2.5 2.5 0 015 0v1.5M9 14h6" />
-                    </svg>
+
+                  {/* Duration & Actions */}
+                  <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+                    {/* Duration */}
+                    <span className="text-xs text-slate-500">
+                      {track.trackTimeMillis
+                        ? `${Math.floor(
+                            track.trackTimeMillis / 60000
+                          )}:${String(
+                            Math.floor((track.trackTimeMillis % 60000) / 1000)
+                          ).padStart(2, "0")}`
+                        : "--:--"}
+                    </span>
+
+                    {/* Play indicator */}
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
+                                    ${
+                                      isCurrent && isPlaying
+                                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
+                                        : "bg-slate-700/50 text-slate-400 group-hover:bg-slate-600/50 group-hover:text-slate-300"
+                                    }`}
+                    >
+                      <Play
+                        className={`w-4 h-4 ${
+                          isCurrent && isPlaying ? "animate-pulse" : ""
+                        }`}
+                      />
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
-            </button>
-          )
-        })}
+            );
+          })}
+        </div>
       </div>
+
+      {/* Footer info */}
+      <div className="mt-6 pt-4 border-t border-slate-700/50"></div>
     </div>
-  )
-}
+  );
+};
+
+export default TrackList;

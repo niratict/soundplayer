@@ -1,110 +1,138 @@
-import { usePlayerStore } from '../features/player/playerStore'
+import React, { useState, useEffect } from "react";
+import { Music } from "lucide-react";
+import { usePlayerStore } from "../features/player/playerStore";
+import { truncateText } from "../utils/format";
 
-export default function NowPlayingCard() {
-  const { queue, currentIndex, isPlaying } = usePlayerStore()
-  const current = queue[currentIndex]
-
-  if (!current) return (
-    <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700" data-testid="now-playing">
-      <div className="text-center py-12">
-        <div className="w-20 h-20 mx-auto mb-4 bg-slate-700 rounded-full flex items-center justify-center">
-          <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l6-6v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-          </svg>
-        </div>
-        <h3 className="text-slate-400 text-lg font-medium mb-2">ยังไม่ได้เลือกเพลง</h3>
-        <p className="text-slate-500 text-sm">ค้นหาและเลือกเพลงที่คุณชื่นชอบ</p>
-      </div>
-    </div>
-  )
+// Soundwave Component
+const Soundwave = ({ isPlaying }) => {
+  const bars = Array.from({ length: 20 }, (_, i) => i);
 
   return (
-    <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700 overflow-hidden relative" data-testid="now-playing">
-      {/* Background glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 opacity-50"></div>
-      
-      <div className="relative">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-            {isPlaying ? (
-              <div className="flex gap-1">
-                <div className="w-1 h-4 bg-white rounded-full animate-pulse"></div>
-                <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-              </div>
-            ) : (
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            )}
-          </div>
-          <div>
-            <h3 className="text-white font-semibold text-sm">
-              {isPlaying ? 'กำลังเล่น' : 'หยุดชั่วคราว'}
-            </h3>
-          </div>
-        </div>
+    <div className="flex items-center justify-center space-x-1 h-12 absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent rounded-b-lg">
+      {bars.map((bar) => (
+        <div
+          key={bar}
+          className={`bg-gradient-to-t from-pink-500 to-pink-300 rounded-full transition-all duration-75 ${
+            isPlaying ? "animate-pulse" : "opacity-30"
+          }`}
+          style={{
+            width: "2px",
+            height: isPlaying ? `${Math.random() * 30 + 5}px` : "3px",
+            animationDelay: `${bar * 0.1}s`,
+            animationDuration: `${0.5 + Math.random() * 0.5}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
-        <div className="flex gap-6 items-start">
-          {/* Large Album Art */}
-          <div className="relative group">
-            <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl">
-              <img 
-                src={current.artworkUrl100} 
-                alt={current.trackName} 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-              />
-            </div>
-            
-            {/* Vinyl effect overlay */}
-            <div className="absolute inset-0 rounded-2xl">
-              <div className={`absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent rounded-2xl ${
-                isPlaying ? 'animate-pulse' : ''
-              }`}></div>
-              {/* Shine effect */}
-              <div className="absolute top-4 left-4 w-8 h-8 bg-white/10 rounded-full blur-sm"></div>
-            </div>
-          </div>
+const NowPlayingCard = () => {
+  const { queue, currentIndex, isPlaying, isLoading } = usePlayerStore();
+  const currentTrack = queue[currentIndex];
+  const [waveAnimation, setWaveAnimation] = useState(false);
 
-          {/* Track Details */}
-          <div className="flex-1 min-w-0">
-            <h2 className="text-white font-bold text-xl leading-tight mb-2 line-clamp-2">
-              {current.trackName}
-            </h2>
-            <h3 className="text-slate-300 font-medium text-lg mb-4 line-clamp-1">
-              {current.artistName}
-            </h3>
-            
-            {/* Queue info */}
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-              </svg>
-              <span>
-                เพลงที่ {currentIndex + 1} จาก {queue.length}
-              </span>
-            </div>
+  useEffect(() => {
+    if (isPlaying) {
+      const interval = setInterval(() => {
+        setWaveAnimation((prev) => !prev);
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [isPlaying]);
 
-            {/* Audio visualizer bars (decorative) */}
-            {isPlaying && (
-              <div className="flex items-end gap-1 mt-4 h-8">
-                {[...Array(12)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-gradient-to-t from-purple-500 to-pink-400 rounded-full animate-pulse"
-                    style={{
-                      width: '3px',
-                      height: `${Math.random() * 24 + 8}px`,
-                      animationDelay: `${Math.random() * 2}s`,
-                      animationDuration: `${0.5 + Math.random()}s`
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+  if (!currentTrack) {
+    return (
+      <div
+        id="now-playing"
+        className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-xl p-6 shadow-2xl backdrop-blur-xl"
+      >
+        <div className="text-center">
+          <div className="relative">
+            <Music className="w-20 h-20 text-slate-400/30 mx-auto mb-4" />
+            <div className="absolute inset-0 bg-purple-500/10 rounded-full blur-xl" />
           </div>
+          <p className="font-pixel text-slate-400 text-sm">No track selected</p>
+          <p className="font-pixel text-slate-400/60 text-xs mt-2">
+            Search and play music to get started
+          </p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div
+      id="now-playing"
+      className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-xl p-6 shadow-2xl backdrop-blur-xl relative overflow-hidden"
+    >
+      {/* Background glow effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-transparent to-pink-600/10 blur-3xl" />
+
+      <div className="text-center relative z-10">
+        {/* Artwork */}
+        <div className="relative w-32 h-32 mx-auto mb-4">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg blur-lg" />
+          <img
+            src={currentTrack.artworkUrl100}
+            alt={`${currentTrack.trackName} artwork`}
+            className="relative w-full h-full rounded-lg border border-slate-600 object-cover shadow-lg ring-1 ring-purple-500/20"
+          />
+
+          {/* Soundwave overlay when playing */}
+          {isPlaying && !isLoading && <Soundwave isPlaying={isPlaying} />}
+
+          {/* Loading overlay */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center backdrop-blur-sm">
+              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+          )}
+
+          {/* Playing pulse ring */}
+          {isPlaying && !isLoading && (
+            <div className="absolute inset-0 rounded-lg border border-purple-400/30 animate-pulse" />
+          )}
+        </div>
+
+        {/* Track info */}
+        <div className="space-y-2">
+          <h2 className="font-pixel text-lg font-bold text-white leading-tight">
+            {truncateText(currentTrack.trackName, 25)}
+          </h2>
+
+          <p className="font-pixel text-sm text-slate-400">
+            {truncateText(currentTrack.artistName, 30)}
+          </p>
+        </div>
+
+        {/* Status */}
+        <div className="mt-4 pt-4 border-t border-slate-700/50">
+          <div className="flex items-center justify-center space-x-3 pb-5">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isLoading
+                  ? "bg-yellow-500 animate-pulse"
+                  : isPlaying
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse"
+                  : "bg-slate-400/30"
+              }`}
+            />
+            <div className="font-pixel text-sm text-slate-300 translate-y-[-1px]  ">
+              {isLoading
+                ? "กำลังโหลด..."
+                : isPlaying
+                ? "กำลังเล่น"
+                : "หยุดชั่วคราว"}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom gradient overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-900/60 to-transparent rounded-b-xl pointer-events-none" />
+      </div>
     </div>
-  )
-}
+  );
+};
+
+export default NowPlayingCard;

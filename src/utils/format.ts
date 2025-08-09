@@ -1,6 +1,12 @@
-export function formatTime(sec: number): string {
-  if (!Number.isFinite(sec) || sec < 0) sec = 0
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-}
+export const formatTime = (seconds: number): string => {
+  if (isNaN(seconds) || !isFinite(seconds) || seconds < 0) return '0:00';
+  
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+export const truncateText = (text: string, maxLength: number): string => {
+  if (!text) return '';
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+};

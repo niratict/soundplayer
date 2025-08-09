@@ -1,6 +1,16 @@
+/* Import Thai font - Sarabun is modern, clean and good for music apps */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Apply font globally */
+@layer base {
+  * {
+    font-family: 'Sarabun', 'Helvetica Neue', Arial, sans-serif;
+  }
+}
 
 /* Pixel border & LCD feel */
 @layer components {

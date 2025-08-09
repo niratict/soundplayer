@@ -1,27 +1,39 @@
-import { useState, useEffect } from 'react'
-import SearchBar from './components/SearchBar'
-import TrackList from './components/TrackList'
-import NowPlayingCard from './components/NowPlayingCard'
-import PlayerBar from './components/PlayerBar'
-import type { Track } from './types'
-import { usePlayerStore } from './features/player/playerStore'
-import { useAudio } from './features/player/useAudio'
+import { useState, useEffect } from "react";
+import SearchBar from "./components/SearchBar";
+import TrackList from "./components/TrackList";
+import NowPlayingCard from "./components/NowPlayingCard";
+import PlayerBar from "./components/PlayerBar";
+import type { Track } from "./types";
+import { usePlayerStore } from "./features/player/playerStore";
+import { useAudio } from "./features/player/useAudio";
 
 export default function App() {
-  const [results, setResults] = useState<Track[]>([])
-  const { togglePlay } = usePlayerStore()
-  const { seekBy } = useAudio()
+  const [results, setResults] = useState<Track[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { togglePlay } = usePlayerStore();
+  const { seekBy } = useAudio();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT') return
-      if (e.code === 'Space') { e.preventDefault(); togglePlay() }
-      if (e.code === 'ArrowLeft') { e.preventDefault(); seekBy(-5) }
-      if (e.code === 'ArrowRight') { e.preventDefault(); seekBy(5) }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [togglePlay, seekBy])
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlay();
+      }
+      if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        seekBy(-5);
+      }
+      if (e.code === "ArrowRight") {
+        e.preventDefault();
+        seekBy(5);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [togglePlay, seekBy]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
@@ -40,26 +52,36 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                   </svg>
                 </div>
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent">
                     SoundWave
                   </h1>
-                  <p className="text-slate-400 text-sm hidden md:block">Your premium music experience</p>
+                  <p className="text-slate-400 text-sm hidden md:block">
+                    Your premium music experience
+                  </p>
                 </div>
               </div>
-              
+
               {/* Quick Actions */}
               <div className="flex items-center gap-3">
                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-full text-xs text-slate-300">
-                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">Space</kbd>
+                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">
+                    Space
+                  </kbd>
                   <span>Play/Pause</span>
                 </div>
                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-full text-xs text-slate-300">
-                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">←/→</kbd>
+                  <kbd className="px-2 py-1 bg-slate-700 rounded text-xs">
+                    ←/→
+                  </kbd>
                   <span>Seek ±5s</span>
                 </div>
               </div>
@@ -76,21 +98,44 @@ export default function App() {
               <section>
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold mb-2">Discover Music</h2>
-                  <p className="text-slate-400">Search for your favorite tracks and artists</p>
+                  <p className="text-slate-400">
+                    Search for your favorite tracks and artists
+                  </p>
                 </div>
-                <SearchBar onPickResults={setResults} />
+                <SearchBar
+                  onResults={setResults}
+                  onLoading={setIsLoading}
+                  onError={setError}
+                />
+
+                {/* Error Display */}
+                {error && (
+                  <div className="mt-4 p-4 bg-red-900/50 border border-red-500/50 rounded-lg">
+                    <p className="text-red-200 text-sm">{error}</p>
+                  </div>
+                )}
               </section>
 
               {/* Track List Section */}
               <section>
-                {results.length > 0 && (
+                {(results.length > 0 || isLoading) && (
                   <>
                     <div className="mb-6">
-                      <h2 className="text-2xl font-bold mb-2">Search Results</h2>
-                      <p className="text-slate-400">Found {results.length} tracks</p>
+                      <h2 className="text-2xl font-bold mb-2">
+                        Search Results
+                      </h2>
+                      <p className="text-slate-400">
+                        {isLoading
+                          ? "Searching..."
+                          : `Found ${results.length} tracks`}
+                      </p>
                     </div>
                     <div className="bg-slate-900/50 backdrop-blur-sm rounded-3xl border border-slate-700/50 shadow-2xl overflow-hidden">
-                      <TrackList tracks={results} />
+                      <TrackList
+                        tracks={results}
+                        isLoading={isLoading}
+                        error={error}
+                      />
                     </div>
                   </>
                 )}
@@ -110,53 +155,6 @@ export default function App() {
           </div>
 
           {/* Featured Sections */}
-          <div className="mt-16 space-y-12">
-            {/* Recently Played */}
-            <section className="opacity-60 hover:opacity-100 transition-opacity duration-300">
-              <h2 className="text-2xl font-bold mb-6">Recently Played</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="group cursor-pointer">
-                    <div className="aspect-square bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl mb-3 shadow-lg group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300">
-                      <div className="w-full h-full rounded-2xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                        </svg>
-                      </div>
-                    </div>
-                    <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors truncate">
-                      Playlist {i}
-                    </p>
-                    <p className="text-xs text-slate-500">Various Artists</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Made For You */}
-            <section className="opacity-60 hover:opacity-100 transition-opacity duration-300">
-              <h2 className="text-2xl font-bold mb-6">Made for You</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {['Discover Weekly', 'Daily Mix 1', 'Release Radar'].map((title, i) => (
-                  <div key={title} className="group cursor-pointer">
-                    <div className="bg-gradient-to-br from-slate-800/80 to-slate-700/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300 border border-slate-600/30">
-                      <div className="aspect-square bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl mb-4 flex items-center justify-center">
-                        <svg className="w-12 h-12 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                        </svg>
-                      </div>
-                      <h3 className="font-bold text-lg mb-2 group-hover:text-purple-300 transition-colors">
-                        {title}
-                      </h3>
-                      <p className="text-slate-400 text-sm">
-                        Your personalized playlist updated weekly
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
         </main>
 
         {/* Spacer for fixed player */}
@@ -168,5 +166,5 @@ export default function App() {
         <PlayerBar />
       </div>
     </div>
-  )
+  );
 }
